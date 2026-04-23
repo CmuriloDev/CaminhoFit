@@ -1,6 +1,4 @@
--- ==========================================
 -- 1. EXTENSÕES E TIPOS CUSTOMIZADOS 
--- ==========================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Tipo de atividade
@@ -9,9 +7,7 @@ CREATE TYPE activity_type AS ENUM ('corrida', 'academia', 'luta', 'calistenia', 
 -- Nível de movimento/lotação
 CREATE TYPE crowd_level_type AS ENUM ('baixo', 'medio', 'alto');
 
--- ==========================================
 -- 2. TABELA PRINCIPAL: LOCATIONS
--- ==========================================
 CREATE TABLE locations (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
@@ -32,9 +28,7 @@ CREATE TABLE locations (
 -- Indices para busca rápida por localização
 CREATE INDEX idx_locations_lat_long ON locations (latitude, longitude);
 
--- ==========================================
 -- 3. SEGURANÇA (RLS - ROW LEVEL SECURITY)
--- ==========================================
 
 -- Habilitar RLS na tabela de locais
 ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
@@ -43,9 +37,7 @@ ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public Read Access" ON locations
   FOR SELECT USING (true);
 
--- ==========================================
 -- 4. SEED DATA (DADOS PARA TESTE EM TERESINA)
--- ==========================================
 INSERT INTO locations (name, type, latitude, longitude, description, busiest_time, crowd_level, tags)
 VALUES 
 (
