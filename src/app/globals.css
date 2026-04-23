@@ -1,12 +1,23 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --color-primary: #22C55E;
+    --color-primary-dark: #16A34A;
+    --color-black: #111111;
+    --color-bg: #F4F4F5;
+    --color-support-blue: #3B82F6;
+    --color-support-orange: #F97316;
+    --color-support-yellow: #EAB308;
+  }
+
   * {
     box-sizing: border-box;
   }
-  html,
-  body {
+
+  html, body {
     height: 100%;
+    background-color: var(--color-bg);
   }
 }
 
