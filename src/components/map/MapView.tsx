@@ -12,15 +12,19 @@ interface MapViewProps {
 
 export default function MapView({ locations, selectedId, onSelectLocation }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-
-  const instanceRef = useRef<any>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markersRef = useRef<Record<string, L.Marker>>({});
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !mapRef.current) return;
+    if (initializedRef.current) return;
+    if (!mapRef.current) return;
 
-    if ((mapRef.current as any)._leaflet_id) return;
+    initializedRef.current = true;
 
     import('leaflet').then((L) => {
+      if (mapInstanceRef.current) return;
+
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -34,87 +38,64 @@ export default function MapView({ locations, selectedId, onSelectLocation }: Map
         zoomControl: false,
       });
 
-      // Zoom control no canto inferior direito
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
+        attribution: '© OpenStreetMap © CARTO',
         maxZoom: 19,
       }).addTo(map);
 
-      instanceRef.current = { map, markers: {} as Record<string, L.Marker> };
+      mapInstanceRef.current = map;
     });
 
-    return () => {
-      if (instanceRef.current?.map) {
-        instanceRef.current.map.remove();
-        instanceRef.current = null;
-      }
-    };
   }, []);
 
-  // Atualiza marcadores
+  // Renderiza marcadores quando locations ou mapa mudam
   useEffect(() => {
-    if (!instanceRef.current) {
-      // Mapa ainda não inicializou, tenta de novo em 300ms
-      const timeout = setTimeout(() => {
-        if (!instanceRef.current) return;
-        renderMarkers();
-      }, 300);
-      return () => clearTimeout(timeout);
-    }
-    renderMarkers();
+    if (!locations.length) return;
 
-    function renderMarkers() {
+    const tryRender = () => {
+      if (!mapInstanceRef.current) {
+        setTimeout(tryRender, 200);
+        return;
+      }
+
       import('leaflet').then((L) => {
-        const { map, markers } = instanceRef.current;
+        const map = mapInstanceRef.current!;
 
-        Object.values(markers).forEach((m) => (m as L.Marker).remove());
-        instanceRef.current.markers = {};
+        // Remove marcadores antigos
+        Object.values(markersRef.current).forEach((m) => m.remove());
+        markersRef.current = {};
 
         locations.forEach((loc) => {
           const color = ACTIVITY_TYPE_COLORS[loc.type] ?? '#6b7280';
           const label = ACTIVITY_TYPE_LABELS[loc.type] ?? loc.type;
 
-          // Pin customizado com foto placeholder
           const icon = L.divIcon({
             className: '',
             html: `
               <div style="
-                position: relative;
-                width: 48px;
-                filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+                width:48px;
+                filter:drop-shadow(0 4px 8px rgba(0,0,0,0.25));
               ">
-                <!-- Balão do pin -->
                 <div style="
-                  width: 48px;
-                  height: 48px;
-                  background: white;
-                  border: 3px solid ${color};
-                  border-radius: 50% 50% 50% 0;
-                  transform: rotate(-45deg);
-                  overflow: hidden;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
+                  width:48px;height:48px;
+                  background:white;
+                  border:3px solid ${color};
+                  border-radius:50% 50% 50% 0;
+                  transform:rotate(-45deg);
+                  display:flex;align-items:center;justify-content:center;
                 ">
-                  <!-- Ícone de tipo dentro do pin -->
                   <div style="
-                    transform: rotate(45deg);
-                    width: 28px;
-                    height: 28px;
-                    background: ${color}22;
-                    border-radius: 50%;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 14px;
-                  ">
-                    ${getTypeEmoji(loc.type)}
-                  </div>
+                    transform:rotate(45deg);
+                    width:28px;height:28px;
+                    background:${color}22;
+                    border-radius:50%;
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:14px;
+                  ">${getTypeEmoji(loc.type)}</div>
                 </div>
-              </div>
-            `,
+              </div>`,
             iconSize: [48, 48],
             iconAnchor: [24, 48],
             popupAnchor: [0, -52],
@@ -122,95 +103,61 @@ export default function MapView({ locations, selectedId, onSelectLocation }: Map
 
           const marker = L.marker([loc.latitude, loc.longitude], { icon }).addTo(map);
 
-          // Popup com layout preparado para foto futura
           marker.bindPopup(`
-            <div style="
-              width: 220px;
-              font-family: system-ui, -apple-system, sans-serif;
-              border-radius: 12px;
-              overflow: hidden;
-            ">
-              <!-- Área de foto (placeholder por ora) -->
+            <div style="width:220px;font-family:system-ui,sans-serif;">
               <div style="
-                width: 100%;
-                height: 100px;
-                background: linear-gradient(135deg, ${color}33, ${color}66);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 36px;
-                margin: -14px -20px 12px -20px;
-                width: calc(100% + 40px);
-              ">
-                ${getTypeEmoji(loc.type)}
-              </div>
+                height:90px;
+                background:linear-gradient(135deg,${color}33,${color}88);
+                display:flex;align-items:center;justify-content:center;
+                font-size:40px;
+                margin:-14px -20px 12px -20px;
+                width:calc(100% + 40px);
+              ">${getTypeEmoji(loc.type)}</div>
 
-              <!-- Conteúdo -->
-              <div style="padding: 0 2px;">
-                <div style="
-                  display: inline-block;
-                  font-size: 10px;
-                  font-weight: 600;
-                  color: ${color};
-                  background: ${color}18;
-                  padding: 2px 8px;
-                  border-radius: 20px;
-                  margin-bottom: 6px;
-                  text-transform: uppercase;
-                  letter-spacing: 0.5px;
-                ">${label}</div>
+              <span style="
+                font-size:10px;font-weight:600;
+                color:${color};background:${color}18;
+                padding:2px 8px;border-radius:20px;
+                text-transform:uppercase;letter-spacing:0.5px;
+              ">${label}</span>
 
-                <strong style="
-                  display: block;
-                  font-size: 14px;
-                  color: #111;
-                  margin-bottom: 4px;
-                  line-height: 1.3;
-                ">${loc.name}</strong>
+              <strong style="display:block;font-size:14px;color:#111;margin:6px 0 4px;line-height:1.3;">
+                ${loc.name}
+              </strong>
 
-                ${loc.busiest_time ? `
-                  <p style="font-size:11px;color:#666;margin:0 0 10px 0;">
-                    🕐 Pico: ${loc.busiest_time}
-                  </p>
-                ` : '<div style="margin-bottom:10px;"></div>'}
+              ${loc.busiest_time
+                ? `<p style="font-size:11px;color:#666;margin:0 0 10px;">🕐 Pico: ${loc.busiest_time}</p>`
+                : '<div style="margin-bottom:10px;"></div>'
+              }
 
-                <button
-                  onclick="window.__fitmap_select('${loc.id}')"
-                  style="
-                    width: 100%;
-                    padding: 8px;
-                    background: #111;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                    font-weight: 600;
-                    letter-spacing: 0.3px;
-                  "
-                >Ver detalhes →</button>
-              </div>
+              <button
+                onclick="window.__fitmap_select('${loc.id}')"
+                style="
+                  width:100%;padding:8px;
+                  background:#111;color:white;
+                  border:none;border-radius:8px;
+                  cursor:pointer;font-size:12px;font-weight:600;
+                "
+              >Ver detalhes →</button>
             </div>
-          `, {
-            maxWidth: 240,
-            className: 'fitmap-popup',
-          });
+          `, { maxWidth: 240, className: 'fitmap-popup' });
 
-          instanceRef.current.markers[loc.id] = marker;
+          markersRef.current[loc.id] = marker;
         });
 
         window.__fitmap_select = (id: string) => onSelectLocation(id);
       });
-    }
+    };
+
+    tryRender();
   }, [locations]);
 
-  // Foca no marcador selecionado
+  // Foca marcador selecionado
   useEffect(() => {
-    if (!selectedId || !instanceRef.current) return;
-    const { map, markers } = instanceRef.current;
-    const marker = markers[selectedId];
+    if (!selectedId || !mapInstanceRef.current) return;
+    const marker = markersRef.current[selectedId];
     if (marker) {
-      map.setView(marker.getLatLng(), 16, { animate: true });
+      mapInstanceRef.current.setView(marker.getLatLng(), 16, { animate: true });
       marker.openPopup();
     }
   }, [selectedId]);
@@ -225,24 +172,21 @@ export default function MapView({ locations, selectedId, onSelectLocation }: Map
           box-shadow: 0 8px 30px rgba(0,0,0,0.15);
           border: 1px solid #f0f0f0;
         }
-        .fitmap-popup .leaflet-popup-content {
-          margin: 0;
-        }
-        .fitmap-popup .leaflet-popup-tip {
-          background: white;
-        }
+        .fitmap-popup .leaflet-popup-content { margin: 0; }
+        .fitmap-popup .leaflet-popup-tip { background: white; }
         .leaflet-control-zoom {
           border: none !important;
           box-shadow: 0 2px 12px rgba(0,0,0,0.12) !important;
+          border-radius: 10px !important;
+          overflow: hidden;
         }
         .leaflet-control-zoom a {
-          border-radius: 8px !important;
           border: none !important;
           color: #111 !important;
-          font-weight: 600 !important;
+          font-weight: 700 !important;
         }
       `}</style>
-      <div ref={mapRef} className="w-full h-full rounded-xl" />
+      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
     </>
   );
 }
