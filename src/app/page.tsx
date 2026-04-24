@@ -84,14 +84,15 @@ export default function HomePage() {
 
         {/* Mapa */}
         <main className={`${showMap ? 'flex' : 'hidden'} sm:flex flex-1 p-3`}>
-          <MapView
-            locations={locations}
-            selectedId={selectedId}
-            onSelectLocation={(id) => {
-              setSelectedId(id);
-              setShowMap(false);
-            }}
+          <div className="w-full h-full min-h-100">
+            <MapView
+              locations={locations}
+              selectedId={selectedId}
+              onSelectLocation={(id) => {
+                setSelectedId(id);
+              }}
           />
+          </div>
         </main>
       </div>
     </div>
