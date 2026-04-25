@@ -24,20 +24,24 @@ export default function FilterBar({ filters, onChange, total }: FilterBarProps) 
   const active = filters.type ?? 'todos';
 
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-xs text-zinc-500 px-1">
+    <div className="flex flex-col gap-2.5">
+      <p className="text-xs text-zinc-400 font-medium">
         {total} {total !== 1 ? 'locais encontrados' : 'local encontrado'}
       </p>
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+
+      <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
         {ALL_TYPES.map((type) => (
           <button
             key={type}
             onClick={() => onChange({ ...filters, type })}
-            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
-              active === type
-                ? 'bg-black text-white'
+            className={`
+              shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium
+              transition-all duration-150 active:scale-95 cursor-pointer
+              ${active === type
+                ? 'bg-green-500 text-white shadow-sm shadow-green-200'
                 : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-            }`}
+              }
+            `}
           >
             {type === 'todos' ? 'Todos' : ACTIVITY_TYPE_LABELS[type as ActivityType]}
           </button>

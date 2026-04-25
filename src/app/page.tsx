@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin, List, Map, Loader2 } from 'lucide-react';
 import { useLocations } from '@/hooks/useLocations';
 import LocationCard from '@/components/ui/LocationCard';
 import FilterBar from '@/components/ui/FilterBar';
@@ -10,8 +10,11 @@ import FilterBar from '@/components/ui/FilterBar';
 const MapView = dynamic(() => import('@/components/map/MapView'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-full flex items-center justify-center bg-zinc-100 rounded-xl">
-      <Loader2 className="animate-spin text-zinc-400" size={32} />
+    <div className="w-full h-full flex items-center justify-center bg-zinc-100 rounded-2xl">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="animate-spin text-green-500" size={28} />
+        <span className="text-sm text-zinc-400">Carregando mapa...</span>
+      </div>
     </div>
   ),
 });
@@ -23,49 +26,72 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col h-screen bg-zinc-50">
+
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-white border-b border-zinc-200">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-black rounded-lg flex items-center justify-center">
-            <MapPin size={14} className="text-white" />
+      <header className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-zinc-100 shadow-sm z-10">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-green-500 rounded-xl flex items-center justify-center shadow-sm">
+            <MapPin size={15} className="text-white" />
           </div>
-          <span className="font-bold text-zinc-900 tracking-tight">CaminhoFit</span>
-          <span className="text-xs text-zinc-400 hidden sm:inline">Teresina · PI</span>
+          <div className="flex items-baseline gap-2">
+            <span className="font-bold text-zinc-900 tracking-tight text-lg">CaminhoFit</span>
+            <span className="text-xs text-zinc-400 hidden sm:inline">Teresina · PI</span>
+          </div>
         </div>
 
         {/* Toggle mobile */}
         <button
           onClick={() => setShowMap(!showMap)}
-          className="text-xs px-3 py-1.5 rounded-lg bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors sm:hidden"
+          className="sm:hidden flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors active:scale-95"
         >
-          {showMap ? 'Ver lista' : 'Ver mapa'}
+          {showMap
+            ? <><List size={13} /> Ver lista</>
+            : <><Map size={13} /> Ver mapa</>
+          }
         </button>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar — sempre visível em sm+ */}
-        <aside className={`${showMap ? 'hidden' : 'flex'} sm:flex flex-col w-full sm:w-80 lg:w-96 bg-white border-r border-zinc-200 overflow-hidden`}>
-          <div className="p-4 border-b border-zinc-100">
-            <FilterBar filters={filters} onChange={setFilters} total={locations.length} />
+
+        {/* Sidebar */}
+        <aside className={`
+          ${showMap ? 'hidden' : 'flex'} sm:flex
+          flex-col w-full sm:w-80 lg:w-96
+          bg-white border-r border-zinc-100
+          overflow-hidden
+        `}>
+
+          {/* Filtros */}
+          <div className="px-4 py-3 border-b border-zinc-100 bg-white">
+            <FilterBar
+              filters={filters}
+              onChange={setFilters}
+              total={locations.length}
+            />
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {/* Lista */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {loading && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="animate-spin text-zinc-400" size={24} />
+              <div className="flex flex-col items-center justify-center py-16 gap-3">
+                <Loader2 className="animate-spin text-green-500" size={24} />
+                <span className="text-sm text-zinc-400">Buscando locais...</span>
               </div>
             )}
 
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
-                {error}
+              <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+                Erro ao carregar locais. Tente novamente.
               </div>
             )}
 
             {!loading && !error && locations.length === 0 && (
-              <p className="text-center py-12 text-zinc-400 text-sm">
-                Nenhum local encontrado.
-              </p>
+              <div className="flex flex-col items-center justify-center py-16 gap-2">
+                <span className="text-3xl">🗺️</span>
+                <p className="text-sm text-zinc-400 text-center">
+                  Nenhum local encontrado para este filtro.
+                </p>
+              </div>
             )}
 
             {locations.map((loc) => (
@@ -84,16 +110,18 @@ export default function HomePage() {
 
         {/* Mapa */}
         <main className={`${showMap ? 'flex' : 'hidden'} sm:flex flex-1 p-3`}>
-          <div className="w-full h-full min-h-100">
+          <div className="w-full h-full min-h-0 rounded-2xl overflow-hidden shadow-sm">
             <MapView
               locations={locations}
               selectedId={selectedId}
               onSelectLocation={(id) => {
                 setSelectedId(id);
+                setShowMap(false);
               }}
-          />
+            />
           </div>
         </main>
+
       </div>
     </div>
   );
