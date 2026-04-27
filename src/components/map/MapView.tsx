@@ -107,10 +107,63 @@ export default function MapView({ locations, selectedId, onSelectLocation }: Map
 
           const marker = L.marker([loc.latitude, loc.longitude], { icon }).addTo(mapRef.current!);
 
-          marker.bindPopup(buildPopupHTML(loc, color, label), {
-            maxWidth: 240,
-            className: 'fitmap-popup',
-          });
+          marker.bindPopup(`
+            <div style="
+              width: 220px;
+              font-family: system-ui, sans-serif;
+            ">
+              ${
+                loc.image_url
+                  ? `<img 
+                      src="${loc.image_url}" 
+                      alt="${loc.name}" 
+                      style="
+                        width: 100%;
+                        height: 110px;
+                        object-fit: cover;
+                        border-radius: 10px;
+                        margin-bottom: 10px;
+                      "
+                    />`
+                  : ''
+              }
+
+              <strong style="
+                display: block;
+                font-size: 14px;
+                color: #18181b;
+                margin-bottom: 4px;
+              ">
+                ${loc.name}
+              </strong>
+
+              <span style="
+                display: block;
+                font-size: 12px;
+                color: #71717a;
+                margin-bottom: 10px;
+              ">
+                ${loc.type}
+              </span>
+
+              <button
+                onclick="window.__fitmap_select('${loc.id}')"
+                style="
+                  padding: 8px 10px;
+                  background: #16a34a;
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  cursor: pointer;
+                  font-size: 12px;
+                  font-weight: 600;
+                  width: 100%;
+                "
+              >
+                Ver detalhes →
+              </button>
+            </div>
+          `);
 
           markersRef.current[loc.id] = marker;
         });

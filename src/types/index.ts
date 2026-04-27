@@ -20,6 +20,7 @@ export interface Location {
   crowd_level: CrowdLevel | null;
   tags: string[];
   created_at: string;
+  image_url?: string | null;
   last_updated_at: string;
 }
 
