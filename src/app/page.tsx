@@ -6,6 +6,7 @@ import { MapPin, List, Map, Loader2 } from 'lucide-react';
 import { useLocations } from '@/hooks/useLocations';
 import LocationCard from '@/components/ui/LocationCard';
 import FilterBar from '@/components/ui/FilterBar';
+import LocationCardSkeleton from '@/components/ui/LocationCardSkeleton';
 
 const MapView = dynamic(() => import('@/components/map/MapView'), {
   ssr: false,
@@ -73,9 +74,10 @@ export default function HomePage() {
           {/* Lista */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {loading && (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <Loader2 className="animate-spin text-green-500" size={24} />
-                <span className="text-sm text-zinc-400">Buscando locais...</span>
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <LocationCardSkeleton key={i} />
+                ))}
               </div>
             )}
 
