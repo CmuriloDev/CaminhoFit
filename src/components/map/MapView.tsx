@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import type { Map as LeafletMap, Marker } from 'leaflet';
 import type { Location } from '@/types';
 import { ACTIVITY_TYPE_COLORS, ACTIVITY_TYPE_LABELS } from '@/lib/locationUtils';
 
@@ -11,20 +12,23 @@ interface MapViewProps {
 }
 
 export default function MapView({ locations, selectedId, onSelectLocation }: MapViewProps) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<Record<string, L.Marker>>({});
-  const initializedRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const markersRef = useRef<Record<string, Marker>>({});
 
+  // Inicializa o mapa uma única vez
   useEffect(() => {
-    if (initializedRef.current) return;
-    if (!mapRef.current) return;
+    if (mapRef.current) return;
+    if (!containerRef.current) return;
 
-    initializedRef.current = true;
+    let cancelled = false;
 
     import('leaflet').then((L) => {
-      if (mapInstanceRef.current) return;
+      if (cancelled) return;
+      if (mapRef.current) return;
+      if (!containerRef.current) return;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -32,7 +36,7 @@ export default function MapView({ locations, selectedId, onSelectLocation }: Map
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
 
-      const map = L.map(mapRef.current!, {
+      const map = L.map(containerRef.current, {
         center: [-5.0892, -42.8019],
         zoom: 14,
         zoomControl: false,
@@ -41,29 +45,30 @@ export default function MapView({ locations, selectedId, onSelectLocation }: Map
       L.control.zoom({ position: 'bottomright' }).addTo(map);
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap © CARTO',
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>',
         maxZoom: 19,
       }).addTo(map);
 
-      mapInstanceRef.current = map;
+      mapRef.current = map;
     });
 
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Renderiza marcadores quando locations ou mapa mudam
+  // Renderiza marcadores
   useEffect(() => {
     if (!locations.length) return;
 
-    const tryRender = () => {
-      if (!mapInstanceRef.current) {
-        setTimeout(tryRender, 200);
-        return;
-      }
+    const interval = setInterval(() => {
+      if (!mapRef.current) return;
+      clearInterval(interval);
 
       import('leaflet').then((L) => {
-        const map = mapInstanceRef.current!;
+        if (!mapRef.current) return;
 
-        // Remove marcadores antigos
+        // Remove marcadores anteriores
         Object.values(markersRef.current).forEach((m) => m.remove());
         markersRef.current = {};
 
@@ -75,120 +80,161 @@ export default function MapView({ locations, selectedId, onSelectLocation }: Map
             className: '',
             html: `
               <div style="
-                width:48px;
-                filter:drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+                width:44px;
+                filter:drop-shadow(0 3px 6px rgba(0,0,0,0.2));
+                cursor:pointer;
               ">
                 <div style="
-                  width:48px;height:48px;
+                  width:44px;height:44px;
                   background:white;
                   border:3px solid ${color};
                   border-radius:50% 50% 50% 0;
                   transform:rotate(-45deg);
                   display:flex;align-items:center;justify-content:center;
                 ">
-                  <div style="
+                  <span style="
                     transform:rotate(45deg);
-                    width:28px;height:28px;
-                    background:${color}22;
-                    border-radius:50%;
-                    display:flex;align-items:center;justify-content:center;
-                    font-size:14px;
-                  ">${getTypeEmoji(loc.type)}</div>
+                    font-size:18px;
+                    line-height:1;
+                  ">${getTypeEmoji(loc.type)}</span>
                 </div>
-              </div>`,
-            iconSize: [48, 48],
-            iconAnchor: [24, 48],
-            popupAnchor: [0, -52],
+              </div>
+            `,
+            iconSize: [44, 44],
+            iconAnchor: [22, 44],
+            popupAnchor: [0, -48],
           });
 
-          const marker = L.marker([loc.latitude, loc.longitude], { icon }).addTo(map);
+          const marker = L.marker([loc.latitude, loc.longitude], { icon }).addTo(mapRef.current!);
 
-          marker.bindPopup(`
-            <div style="width:220px;font-family:system-ui,sans-serif;">
-              <div style="
-                height:90px;
-                background:linear-gradient(135deg,${color}33,${color}88);
-                display:flex;align-items:center;justify-content:center;
-                font-size:40px;
-                margin:-14px -20px 12px -20px;
-                width:calc(100% + 40px);
-              ">${getTypeEmoji(loc.type)}</div>
-
-              <span style="
-                font-size:10px;font-weight:600;
-                color:${color};background:${color}18;
-                padding:2px 8px;border-radius:20px;
-                text-transform:uppercase;letter-spacing:0.5px;
-              ">${label}</span>
-
-              <strong style="display:block;font-size:14px;color:#111;margin:6px 0 4px;line-height:1.3;">
-                ${loc.name}
-              </strong>
-
-              ${loc.busiest_time
-                ? `<p style="font-size:11px;color:#666;margin:0 0 10px;">🕐 Pico: ${loc.busiest_time}</p>`
-                : '<div style="margin-bottom:10px;"></div>'
-              }
-
-              <button
-                onclick="window.__fitmap_select('${loc.id}')"
-                style="
-                  width:100%;padding:8px;
-                  background:#111;color:white;
-                  border:none;border-radius:8px;
-                  cursor:pointer;font-size:12px;font-weight:600;
-                "
-              >Ver detalhes →</button>
-            </div>
-          `, { maxWidth: 240, className: 'fitmap-popup' });
+          marker.bindPopup(buildPopupHTML(loc, color, label), {
+            maxWidth: 240,
+            className: 'fitmap-popup',
+          });
 
           markersRef.current[loc.id] = marker;
         });
 
         window.__fitmap_select = (id: string) => onSelectLocation(id);
       });
-    };
+    }, 100);
 
-    tryRender();
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locations]);
 
-  // Foca marcador selecionado
+  // Foca no marcador selecionado
   useEffect(() => {
-    if (!selectedId || !mapInstanceRef.current) return;
+    if (!selectedId || !mapRef.current) return;
     const marker = markersRef.current[selectedId];
     if (marker) {
-      mapInstanceRef.current.setView(marker.getLatLng(), 16, { animate: true });
+      mapRef.current.setView(marker.getLatLng(), 16, { animate: true });
       marker.openPopup();
     }
   }, [selectedId]);
 
   return (
     <>
-      <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+      <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossOrigin=""
+      />
       <style>{`
         .fitmap-popup .leaflet-popup-content-wrapper {
-          border-radius: 14px;
-          padding: 14px 20px;
-          box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+          border-radius: 16px;
+          padding: 0;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.12);
           border: 1px solid #f0f0f0;
+          overflow: hidden;
         }
-        .fitmap-popup .leaflet-popup-content { margin: 0; }
-        .fitmap-popup .leaflet-popup-tip { background: white; }
+        .fitmap-popup .leaflet-popup-content {
+          margin: 0;
+          width: 220px !important;
+        }
+        .fitmap-popup .leaflet-popup-tip-container {
+          margin-top: -1px;
+        }
+        .fitmap-popup .leaflet-popup-tip {
+          background: white;
+          box-shadow: none;
+        }
         .leaflet-control-zoom {
           border: none !important;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.12) !important;
-          border-radius: 10px !important;
+          border-radius: 12px !important;
           overflow: hidden;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.1) !important;
         }
         .leaflet-control-zoom a {
           border: none !important;
           color: #111 !important;
-          font-weight: 700 !important;
+          font-weight: 600 !important;
+          font-size: 16px !important;
+        }
+        .leaflet-control-zoom a:hover {
+          background: #f4f4f5 !important;
+          color: #22c55e !important;
         }
       `}</style>
-      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+      <div
+        ref={containerRef}
+        style={{ width: '100%', height: '100%' }}
+      />
     </>
   );
+}
+
+function buildPopupHTML(loc: Location, color: string, label: string): string {
+  return `
+    <div style="width:220px;font-family:system-ui,-apple-system,sans-serif;border-radius:16px;overflow:hidden;">
+
+      <!-- Header colorido -->
+      <div style="
+        height:80px;
+        background:linear-gradient(135deg, ${color}22, ${color}55);
+        display:flex;align-items:center;justify-content:center;
+        font-size:38px;
+      ">${getTypeEmoji(loc.type)}</div>
+
+      <!-- Conteúdo -->
+      <div style="padding:14px 16px 16px;">
+
+        <span style="
+          font-size:10px;font-weight:600;letter-spacing:0.5px;
+          text-transform:uppercase;
+          color:${color};
+          background:${color}18;
+          padding:2px 8px;border-radius:20px;
+          display:inline-block;margin-bottom:8px;
+        ">${label}</span>
+
+        <div style="font-size:14px;font-weight:700;color:#111;line-height:1.3;margin-bottom:6px;">
+          ${loc.name}
+        </div>
+
+        ${loc.busiest_time ? `
+          <div style="font-size:11px;color:#888;margin-bottom:12px;display:flex;align-items:center;gap:4px;">
+            🕐 Pico: ${loc.busiest_time}
+          </div>
+        ` : '<div style="margin-bottom:12px;"></div>'}
+
+        <button
+          onclick="window.__fitmap_select('${loc.id}')"
+          style="
+            width:100%;padding:9px 12px;
+            background:#111;color:white;
+            border:none;border-radius:10px;
+            cursor:pointer;font-size:12px;font-weight:600;
+            letter-spacing:0.3px;
+            transition:background 0.15s;
+          "
+          onmouseover="this.style.background='#22c55e'"
+          onmouseout="this.style.background='#111'"
+        >Ver detalhes →</button>
+
+      </div>
+    </div>
+  `;
 }
 
 function getTypeEmoji(type: string): string {
