@@ -6,9 +6,11 @@ import type { Location, LocationFilters } from '@/types';
 
 export function useLocations() {
   const [locations, setLocations] = useState<Location[]>([]);
+  const [filtered, setFiltered] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<LocationFilters>({});
+  const [search, setSearch] = useState('');
 
   const fetchLocations = useCallback(async () => {
     setLoading(true);
@@ -27,5 +29,30 @@ export function useLocations() {
     fetchLocations();
   }, [fetchLocations]);
 
-  return { locations, loading, error, filters, setFilters };
+  // Filtragem por texto no cliente (sem nova requisição)
+  useEffect(() => {
+    if (!search.trim()) {
+      setFiltered(locations);
+      return;
+    }
+    const q = search.toLowerCase().trim();
+    setFiltered(
+      locations.filter((loc) =>
+        loc.name.toLowerCase().includes(q) ||
+        loc.description?.toLowerCase().includes(q) ||
+        loc.tags?.some((t) => t.toLowerCase().includes(q))
+      )
+    );
+  }, [search, locations]);
+
+  return {
+    locations: filtered,
+    totalLocations: locations.length,
+    loading,
+    error,
+    filters,
+    setFilters,
+    search,
+    setSearch,
+  };
 }
