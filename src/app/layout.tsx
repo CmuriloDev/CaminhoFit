@@ -1,8 +1,12 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import './globals.css';
 
-const geist = Geist({ subsets: ['latin'] });
+const inter = Inter({ 
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'CaminhoFit — Onde treinar em Teresina',
@@ -19,13 +23,13 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#22C55E',
+  themeColor: '#22c55e',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body className={`${geist.className} antialiased`}>
+      <body className={`${inter.className} antialiased`}>
         {children}
       </body>
     </html>

@@ -1,19 +1,24 @@
 export default function LocationCardSkeleton() {
   return (
-    <div className="p-4 rounded-2xl border border-zinc-100 bg-white animate-pulse">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-2.5 h-2.5 rounded-full bg-zinc-200" />
-        <div className="h-4 bg-zinc-200 rounded-full w-2/3" />
+    <div className="p-4 rounded-2xl border border-stone-100 bg-white/80 backdrop-blur-sm animate-fade-in">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2.5">
+          {/* Dot shimmer */}
+          <div className="w-3 h-3 rounded-full bg-stone-200 animate-pulse-soft" />
+          {/* Título shimmer */}
+          <div className="h-4 bg-linear-to-r from-stone-200 via-stone-100 to-stone-200 rounded-full w-32 animate-shimmer" />
+        </div>
+        {/* Badge shimmer */}
+        <div className="h-5 w-16 bg-stone-100 rounded-full animate-shimmer" />
       </div>
-      <div className="h-3 bg-zinc-100 rounded-full w-1/3 ml-4 mb-4" />
-      <div className="flex gap-3 ml-4">
-        <div className="h-3 bg-zinc-100 rounded-full w-20" />
-        <div className="h-3 bg-zinc-100 rounded-full w-16" />
-      </div>
-      <div className="flex gap-1.5 mt-3 ml-4">
-        <div className="h-5 bg-zinc-100 rounded-full w-12" />
-        <div className="h-5 bg-zinc-100 rounded-full w-16" />
-        <div className="h-5 bg-zinc-100 rounded-full w-10" />
+      
+      {/* Descrição shimmer */}
+      <div className="h-3 bg-linear-to-r from-stone-100 via-stone-50 to-stone-100 rounded-full w-3/4 ml-5.5 mb-3 animate-shimmer" />
+      
+      {/* Métricas shimmer */}
+      <div className="flex gap-2 ml-5.5">
+        <div className="h-6 bg-linear-to-r from-stone-100 via-stone-50 to-stone-100 rounded-lg w-20 animate-shimmer" />
+        <div className="h-6 bg-linear-to-r from-stone-100 via-stone-50 to-stone-100 rounded-lg w-16 animate-shimmer" />
       </div>
     </div>
   );
