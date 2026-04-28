@@ -9,9 +9,9 @@ interface MapViewProps {
   locations: Location[];
   selectedId?: string | null;
   onSelectLocation: (id: string) => void;
+  onMapReady?: (flyTo: (lat: number, lng: number) => void) => void;
 }
 
-// Emoji para cada tipo de atividade
 function getTypeEmoji(type: string): string {
   const emojis: Record<string, string> = {
     corrida: '🏃',
@@ -25,7 +25,7 @@ function getTypeEmoji(type: string): string {
   return emojis[type] || '📍';
 }
 
-export default function MapView({ locations, selectedId, onSelectLocation }: MapViewProps) {
+export default function MapView({ locations, selectedId, onSelectLocation, onMapReady }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<Record<string, Marker>>({});
@@ -42,7 +42,6 @@ export default function MapView({ locations, selectedId, onSelectLocation }: Map
       if (mapRef.current) return;
       if (!containerRef.current) return;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -64,6 +63,9 @@ export default function MapView({ locations, selectedId, onSelectLocation }: Map
       }).addTo(map);
 
       mapRef.current = map;
+      onMapReady?.((lat, lng) => {
+        map.flyTo([lat, lng], 16, { animate: true, duration: 1.2 });
+      });
     });
 
     return () => {
