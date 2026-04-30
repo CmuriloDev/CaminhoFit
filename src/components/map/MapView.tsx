@@ -246,12 +246,18 @@ export default function MapView({
           border-radius: 16px;
           padding: 0;
           box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-          border: 1px solid #f0f0f0;
           overflow: hidden;
+          display: inline-block;
+          width: auto !important;
+          min-width: 0 !important;
+          box-sizing: border-box;
         }
         .fitmap-popup .leaflet-popup-content {
           margin: 0;
           width: 220px !important;
+          min-width: 220px !important;
+          max-width: 220px !important;
+          box-sizing: border-box;
         }
         .fitmap-popup .leaflet-popup-tip {
           background: white;
