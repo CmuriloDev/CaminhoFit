@@ -1,230 +1,155 @@
-import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { ArrowLeft, Clock, Users, Tag, MapPin } from 'lucide-react';
-import { getLocationById } from '@/services/locations';
-import {
-  ACTIVITY_TYPE_LABELS,
-  ACTIVITY_TYPE_COLORS,
-  CROWD_LEVEL_LABELS,
-  CROWD_LEVEL_COLORS,
-} from '@/lib/locationUtils';
-import ShareButton from '@/components/ui/ShareButton';
+'use client';
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
+import { useState } from 'react';
+import dynamic from 'next/dynamic';
+import { MapPin, List, Map, Loader2, SearchX } from 'lucide-react';
+import { useLocations } from '@/hooks/useLocations';
+import LocationCard from '@/components/ui/LocationCard';
+import LocationCardSkeleton from '@/components/ui/LocationCardSkeleton';
+import LocationModal from '@/components/ui/LocationModal';
+import FilterBar from '@/components/ui/FilterBar';
+import SearchBar from '@/components/ui/SearchBar';
+import GeolocateButton from '@/components/ui/GeolocateButton';
+import type { Location } from '@/types';
+import { useRef } from 'react';
 
-// SEO dinâmico por local
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { id } = await params;
-  const location = await getLocationById(id);
+const MapView = dynamic(() => import('@/components/map/MapView'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-zinc-100 rounded-2xl">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="animate-spin text-green-500" size={28} />
+        <span className="text-sm text-zinc-400">Carregando mapa...</span>
+      </div>
+    </div>
+  ),
+});
 
-  if (!location) {
-    return { title: 'Local não encontrado — CaminhoFit' };
-  }
+export default function HomePage() {
+  const { locations, loading, error, filters, setFilters, search, setSearch } = useLocations();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [modalLocation, setModalLocation] = useState<Location | null>(null);
+  const [showMap, setShowMap] = useState(false);
+  const mapFlyToRef = useRef<((lat: number, lng: number) => void) | null>(null);
 
-  return {
-    title: `${location.name} — CaminhoFit`,
-    description:
-      location.description ??
-      `Conheça ${location.name}, um ótimo local para treinar em Teresina-PI.`,
-    openGraph: {
-      title: location.name,
-      description: location.description ?? '',
-      images: location.image_url ? [location.image_url] : [],
-      locale: 'pt_BR',
-      type: 'website',
-    },
+  const handleSelectLocation = (id: string) => {
+    const loc = locations.find((l) => l.id === id) ?? null;
+    setSelectedId(id);
+    setModalLocation(loc);
   };
-}
 
-export default async function LocationDetailPage({ params }: PageProps) {
-  const { id } = await params;
-  const location = await getLocationById(id);
-  if (!location) return notFound();
-
-  const typeColor = ACTIVITY_TYPE_COLORS[location.type];
-  const crowdStyle = location.crowd_level
-    ? CROWD_LEVEL_COLORS[location.crowd_level]
-    : '';
-
-  const mapsUrl = `https://www.openstreetmap.org/?mlat=${location.latitude}&mlon=${location.longitude}&zoom=17`;
+  const handleGeolocate = (lat: number, lng: number) => {
+    setShowMap(true);
+    setTimeout(() => mapFlyToRef.current?.(lat, lng), 100);
+  };
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="flex flex-col h-screen bg-zinc-50">
 
-      {/* Header */}
-      <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-sm border-b border-zinc-100 px-4 py-3.5">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
-          >
-            <ArrowLeft size={15} />
-            Voltar ao mapa
-          </Link>
-
-          <ShareButton name={location.name} />
+      <header className="flex items-center justify-between px-5 py-3.5 bg-white/80 backdrop-blur-sm border-b border-zinc-100 shadow-sm z-10 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-green-500 rounded-xl flex items-center justify-center shadow-sm">
+            <MapPin size={15} className="text-white" strokeWidth={2.5} />
+          </div>
+          <span className="font-bold text-lg tracking-tight leading-none">
+            <span className="text-zinc-900">Caminho</span>
+            <span className="text-green-500">Fit</span>
+          </span>
+          <span className="text-xs text-zinc-400 hidden sm:inline">Teresina · PI</span>
         </div>
+
+        <button
+          onClick={() => setShowMap(!showMap)}
+          className="sm:hidden flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-all active:scale-95"
+        >
+          {showMap ? <><List size={13} /> Ver lista</> : <><Map size={13} /> Ver mapa</>}
+        </button>
       </header>
 
-      {/* Conteúdo */}
-      <main className="max-w-xl mx-auto px-4 py-5 space-y-4">
+      <div className="flex flex-1 overflow-hidden min-h-0">
 
-        {/* Imagem hero */}
-        {location.image_url ? (
-          <div className="relative w-full h-56 rounded-2xl overflow-hidden shadow-sm">
-            <Image
-              src={location.image_url}
-              alt={location.name}
-              fill
-              className="object-cover"
-              priority
-            />
-
-            <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent" />
-
-            <div className="absolute bottom-3 left-3">
-              <span
-                className="text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm"
-                style={{
-                  color: typeColor,
-                  background: 'rgba(255,255,255,0.85)',
-                }}
-              >
-                {ACTIVITY_TYPE_LABELS[location.type]}
-              </span>
+        <aside className={`
+          ${showMap ? 'hidden' : 'flex'} sm:flex
+          flex-col w-full sm:w-80 lg:w-96 shrink-0
+          bg-white border-r border-zinc-100 overflow-hidden
+        `}>
+          <div className="px-4 pt-4 pb-3 border-b border-zinc-100 space-y-3 shrink-0">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <SearchBar value={search} onChange={setSearch} />
+              </div>
+              <GeolocateButton onLocate={handleGeolocate} />
             </div>
+            <FilterBar filters={filters} onChange={setFilters} total={locations.length} />
           </div>
-        ) : (
-          <div
-            className="w-full h-40 rounded-2xl flex items-center justify-center text-5xl"
-            style={{
-              background: `linear-gradient(135deg, ${typeColor}18, ${typeColor}35)`,
-            }}
-          >
-            {getTypeEmoji(location.type)}
-          </div>
-        )}
 
-        {/* Card principal */}
-        <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
-          {!location.image_url && (
-            <span
-              className="text-xs font-semibold px-2.5 py-1 rounded-full inline-block mb-3"
-              style={{
-                color: typeColor,
-                background: `${typeColor}18`,
-              }}
-            >
-              {ACTIVITY_TYPE_LABELS[location.type]}
-            </span>
-          )}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
+            {loading && (
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <LocationCardSkeleton key={i} />
+                ))}
+              </div>
+            )}
 
-          <h1 className="text-2xl font-bold text-zinc-900 leading-tight mb-3">
-            {location.name}
-          </h1>
-
-          {location.description && (
-            <p className="text-zinc-500 leading-relaxed text-sm">
-              {location.description}
-            </p>
-          )}
-        </div>
-
-        {/* Métricas */}
-        {(location.busiest_time || location.crowd_level) && (
-          <div className="grid grid-cols-2 gap-3">
-            {location.busiest_time && (
-              <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-4">
-                <div className="flex items-center gap-1.5 text-zinc-400 text-xs mb-2">
-                  <Clock size={12} />
-                  Horário de pico
+            {error && !loading && (
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center">
+                  <SearchX size={20} className="text-red-400" />
                 </div>
-                <p className="font-semibold text-zinc-900 text-sm">
-                  {location.busiest_time}
+                <p className="text-sm font-medium text-zinc-700">Erro ao carregar</p>
+                <p className="text-xs text-zinc-400">Verifique sua conexão.</p>
+              </div>
+            )}
+
+            {!loading && !error && locations.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                <span className="text-4xl">🔍</span>
+                <p className="text-sm font-medium text-zinc-700">Nenhum local encontrado</p>
+                <p className="text-xs text-zinc-400">
+                  {search ? `Sem resultados para "${search}"` : 'Tente outro filtro.'}
                 </p>
               </div>
             )}
 
-            {location.crowd_level && (
-              <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-4">
-                <div className="flex items-center gap-1.5 text-zinc-400 text-xs mb-2">
-                  <Users size={12} />
-                  Movimento típico
-                </div>
-                <span
-                  className={`text-sm font-semibold px-2.5 py-0.5 rounded-full ${crowdStyle}`}
-                >
-                  {CROWD_LEVEL_LABELS[location.crowd_level]}
-                </span>
+            {!loading && !error && locations.map((loc, i) => (
+              <div
+                key={loc.id}
+                className="animate-fade-slide-up"
+                style={{ animationDelay: `${i * 40}ms`, opacity: 0 }}
+              >
+                <LocationCard
+                  location={loc}
+                  isSelected={selectedId === loc.id}
+                  onClick={() => handleSelectLocation(loc.id)}
+                />
               </div>
-            )}
+            ))}
           </div>
-        )}
+        </aside>
 
-        {/* Tags */}
-        {location.tags?.length > 0 && (
-          <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-4">
-            <div className="flex items-center gap-1.5 text-zinc-400 text-xs mb-3">
-              <Tag size={12} />
-              Características
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              {location.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-3 py-1 bg-zinc-100 text-zinc-600 rounded-full text-sm"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+        <main className={`${showMap ? 'flex' : 'hidden'} sm:flex flex-1 p-3 min-h-0`}>
+          <div className="w-full h-full rounded-2xl overflow-hidden shadow-sm border border-zinc-100">
+            <MapView
+              locations={locations}
+              selectedId={selectedId}
+              onSelectLocation={handleSelectLocation}
+              onMapReady={(flyTo) => { mapFlyToRef.current = flyTo; }}
+            />
           </div>
-        )}
+        </main>
 
-        {/* CTA */}
-        <a
-          href={mapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="
-            flex items-center justify-center gap-2 w-full py-4
-            bg-green-500 hover:bg-green-600
-            text-white rounded-2xl font-semibold text-sm
-            transition-all active:scale-95
-            shadow-sm shadow-green-200
-          "
-        >
-          <MapPin size={15} />
-          Ver localização no mapa
-        </a>
+      </div>
 
-        <p className="text-center text-xs text-zinc-400 pb-2">
-          Atualizado em{' '}
-          {new Date(location.last_updated_at).toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-          })}
-        </p>
-      </main>
+      {/* Modal global */}
+      <LocationModal
+        location={modalLocation}
+        onClose={() => {
+          setModalLocation(null);
+          setSelectedId(null);
+        }}
+      />
+
     </div>
   );
-}
-
-function getTypeEmoji(type: string): string {
-  const map: Record<string, string> = {
-    corrida: '🏃',
-    academia: '🏋️',
-    luta: '🥊',
-    calistenia: '💪',
-    crossfit: '⚡',
-    funcional: '🎯',
-    esportes_coletivos: '⚽',
-  };
-  return map[type] ?? '📍';
 }
