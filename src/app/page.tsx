@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { MapPin, List, Map, Loader2, SearchX } from 'lucide-react';
+import { MapPin, Loader2, SearchX } from 'lucide-react';
 import { useLocations } from '@/hooks/useLocations';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
@@ -14,6 +14,7 @@ import SearchBar from '@/components/ui/SearchBar';
 import GeolocateButton from '@/components/ui/GeolocateButton';
 import FavoritesPanel from '@/components/ui/FavoritesPanel';
 import SidebarTabs, { type SidebarTab } from '@/components/ui/SidebarTabs';
+import MobileBottomBar from '@/components/ui/MobileBottomBar';
 import type { Location } from '@/types';
 
 const MapView = dynamic(() => import('@/components/map/MapView'), {
@@ -67,12 +68,14 @@ export default function HomePage() {
           <span className="text-xs text-zinc-400 hidden sm:inline">Teresina · PI</span>
         </div>
 
-        <button
-          onClick={() => setShowMap(!showMap)}
-          className="sm:hidden flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-all active:scale-95"
-        >
-          {showMap ? <><List size={13} /> Ver lista</> : <><Map size={13} /> Ver mapa</>}
-        </button>
+        {/* Abas no desktop ficam no header */}
+        <div className="hidden sm:block w-48">
+          <SidebarTabs
+            active={activeTab}
+            onChange={setActiveTab}
+            favoritesCount={favorites.length}
+          />
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden min-h-0">
@@ -84,8 +87,8 @@ export default function HomePage() {
           bg-white border-r border-zinc-100 overflow-hidden
         `}>
 
-          {/* Abas */}
-          <div className="px-4 pt-4 pb-3 border-b border-zinc-100 shrink-0">
+          {/* Abas no mobile ficam dentro da sidebar */}
+          <div className="sm:hidden px-4 pt-4 pb-3 border-b border-zinc-100 shrink-0">
             <SidebarTabs
               active={activeTab}
               onChange={setActiveTab}
@@ -93,7 +96,6 @@ export default function HomePage() {
             />
           </div>
 
-          {/* Aba Explorar */}
           {activeTab === 'explorar' && (
             <>
               <div className="px-4 pt-3 pb-3 border-b border-zinc-100 space-y-3 shrink-0">
@@ -158,7 +160,6 @@ export default function HomePage() {
             </>
           )}
 
-          {/* Aba Favoritos */}
           {activeTab === 'favoritos' && (
             <FavoritesPanel
               locations={locations}
@@ -184,6 +185,15 @@ export default function HomePage() {
         </main>
 
       </div>
+
+      {/* Bottom bar mobile */}
+      <MobileBottomBar
+        showMap={showMap}
+        onToggleMap={() => setShowMap(!showMap)}
+        activeTab={activeTab}
+        onChangeTab={setActiveTab}
+        favoritesCount={favorites.length}
+      />
 
       {/* Modal */}
       <LocationModal
