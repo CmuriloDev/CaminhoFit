@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist } from 'next/font/google';
+import { AuthProvider } from '@/contexts/AuthContext';
 import './globals.css';
 
 const geist = Geist({ subsets: ['latin'] });
@@ -10,21 +11,14 @@ export const metadata: Metadata = {
     default: 'CaminhoFit — Onde treinar em Teresina',
     template: '%s — CaminhoFit',
   },
-  description:
-    'Descubra parques, academias, espaços de calistenia e muito mais para treinar em Teresina-PI. Mapa interativo com informações úteis para quem quer se exercitar.',
-  keywords: ['treino', 'academia', 'corrida', 'Teresina', 'fitness', 'esporte', 'calistenia', 'crossfit'],
-  authors: [{ name: 'CaminhoFit' }],
+  description: 'Descubra parques, academias, espaços de calistenia e muito mais para treinar em Teresina-PI.',
+  keywords: ['treino', 'academia', 'corrida', 'Teresina', 'fitness', 'esporte'],
   openGraph: {
     title: 'CaminhoFit — Onde treinar em Teresina',
     description: 'Descubra os melhores lugares para treinar em Teresina-PI.',
     locale: 'pt_BR',
     type: 'website',
     siteName: 'CaminhoFit',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'CaminhoFit',
-    description: 'Descubra onde treinar em Teresina-PI.',
   },
 };
 
@@ -38,7 +32,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body className={`${geist.className} antialiased`}>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
