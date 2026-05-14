@@ -164,6 +164,7 @@
 
 .animate-scale-in {
   animation: scaleIn 0.25s ease-out forwards;
+}
 
 @layer utilities {
   /* Esconder scrollbar mas manter funcionalidade */
@@ -473,5 +474,4 @@
   padding: 2px 8px !important;
   border-radius: 8px 8px 0 0 !important;
   margin: 0 !important;
-}
 }

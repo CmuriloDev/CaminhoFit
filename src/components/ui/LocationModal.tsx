@@ -4,7 +4,16 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import Link from 'next/link';
-import { X, Clock, Users, Tag, MapPin, Share2, ArrowUpRight } from 'lucide-react';
+import {
+  X,
+  Clock,
+  Users,
+  Tag,
+  MapPin,
+  Share2,
+  ArrowUpRight,
+  Star,
+} from 'lucide-react';
 import type { Location } from '@/types';
 import {
   ACTIVITY_TYPE_LABELS,
@@ -12,13 +21,19 @@ import {
   CROWD_LEVEL_LABELS,
   CROWD_LEVEL_COLORS,
 } from '@/lib/locationUtils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useReviews } from '@/hooks/useReviews';
 import FavoriteButton from './FavoriteButton';
+import StarRating from './StarRating';
+import ReviewForm from './ReviewForm';
+import ReviewList from './ReviewList';
 
 interface LocationModalProps {
   location: Location | null;
   onClose: () => void;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
+  onRequestAuth?: () => void;
 }
 
 export default function LocationModal({
@@ -26,7 +41,20 @@ export default function LocationModal({
   onClose,
   isFavorite = false,
   onToggleFavorite,
+  onRequestAuth,
 }: LocationModalProps) {
+  const { user } = useAuth();
+
+  const {
+    reviews,
+    rating,
+    userReview,
+    loading: reviewsLoading,
+    submitting,
+    submitReview,
+    removeReview,
+  } = useReviews(location?.id ?? '', user?.id);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -47,7 +75,10 @@ export default function LocationModal({
   if (!location) return null;
 
   const typeColor = ACTIVITY_TYPE_COLORS[location.type];
-  const crowdStyle = location.crowd_level ? CROWD_LEVEL_COLORS[location.crowd_level] : '';
+  const crowdStyle = location.crowd_level
+    ? CROWD_LEVEL_COLORS[location.crowd_level]
+    : '';
+
   const mapsUrl = `https://www.openstreetmap.org/?mlat=${location.latitude}&mlon=${location.longitude}&zoom=17`;
 
   const handleShare = async () => {
@@ -127,7 +158,9 @@ export default function LocationModal({
             ) : (
               <div
                 className="relative w-full h-32 flex items-center justify-center text-5xl shrink-0"
-                style={{ background: `linear-gradient(135deg, ${typeColor}18, ${typeColor}35)` }}
+                style={{
+                  background: `linear-gradient(135deg, ${typeColor}18, ${typeColor}35)`,
+                }}
               >
                 {getTypeEmoji(location.type)}
 
@@ -197,6 +230,7 @@ export default function LocationModal({
                         <Clock size={11} />
                         Horário de pico
                       </div>
+
                       <p className="font-semibold text-zinc-900 text-sm">
                         {location.busiest_time}
                       </p>
@@ -209,7 +243,10 @@ export default function LocationModal({
                         <Users size={11} />
                         Movimento
                       </div>
-                      <span className={`text-sm font-semibold px-2 py-0.5 rounded-full ${crowdStyle}`}>
+
+                      <span
+                        className={`text-sm font-semibold px-2 py-0.5 rounded-full ${crowdStyle}`}
+                      >
                         {CROWD_LEVEL_LABELS[location.crowd_level]}
                       </span>
                     </div>
@@ -236,6 +273,52 @@ export default function LocationModal({
                   </div>
                 </div>
               )}
+
+              {/* Avaliações */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-zinc-400 text-xs">
+                    <Star size={11} />
+                    Avaliações
+                  </div>
+
+                  {rating && (
+                    <div className="flex items-center gap-1.5">
+                      <StarRating
+                        value={Math.round(rating.average_rating)}
+                        readonly
+                        size={13}
+                      />
+
+                      <span className="text-xs font-semibold text-zinc-700">
+                        {rating.average_rating}
+                      </span>
+
+                      <span className="text-xs text-zinc-400">
+                        ({rating.review_count})
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {user ? (
+                  <ReviewForm
+                    existingReview={userReview}
+                    submitting={submitting}
+                    onSubmit={submitReview}
+                    onDelete={removeReview}
+                  />
+                ) : (
+                  <button
+                    onClick={onRequestAuth}
+                    className="w-full py-2.5 border border-dashed border-zinc-200 rounded-2xl text-xs text-zinc-400 hover:border-green-400 hover:text-green-600 transition-all"
+                  >
+                    Entre para avaliar este local
+                  </button>
+                )}
+
+                {!reviewsLoading && <ReviewList reviews={reviews} />}
+              </div>
 
               <a
                 href={mapsUrl}
