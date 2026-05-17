@@ -77,9 +77,10 @@ export default function AuthModal({ onClose }: AuthModalProps) {
               </div>
               <button
                 onClick={onClose}
-                className="w-8 h-8 bg-zinc-100 hover:bg-zinc-200 rounded-full flex items-center justify-center text-zinc-500 transition-colors"
+                className="grid size-8 place-items-center rounded-full bg-zinc-100 p-0 text-zinc-500 transition-colors hover:bg-zinc-200 leading-none"
+                aria-label="Fechar"
               >
-                <X size={15} />
+                <X size={15} className="relative -top-px block" />
               </button>
             </div>
 

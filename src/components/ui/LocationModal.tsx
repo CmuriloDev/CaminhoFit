@@ -34,6 +34,7 @@ interface LocationModalProps {
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
   onRequestAuth?: () => void;
+  onViewOnMap?: (location: Location) => void;
 }
 
 export default function LocationModal({
@@ -42,6 +43,7 @@ export default function LocationModal({
   isFavorite = false,
   onToggleFavorite,
   onRequestAuth,
+  onViewOnMap,
 }: LocationModalProps) {
   const { user } = useAuth();
 
@@ -79,8 +81,6 @@ export default function LocationModal({
     ? CROWD_LEVEL_COLORS[location.crowd_level]
     : '';
 
-  const mapsUrl = `https://www.openstreetmap.org/?mlat=${location.latitude}&mlon=${location.longitude}&zoom=17`;
-
   const handleShare = async () => {
     const url = `${window.location.origin}/locations/${location.id}`;
 
@@ -112,7 +112,7 @@ export default function LocationModal({
           className="
             pointer-events-auto
             w-full sm:max-w-md
-            bg-white
+            bg-linear-to-b from-white to-stone-50
             rounded-t-3xl sm:rounded-3xl
             shadow-2xl
             overflow-hidden
@@ -150,7 +150,8 @@ export default function LocationModal({
 
                 <button
                   onClick={onClose}
-                  className="absolute top-3 right-3 w-8 h-8 bg-black/40 hover:bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-colors"
+                  className="absolute top-3 right-3 grid size-8 place-items-center rounded-full bg-black/40 p-0 text-white backdrop-blur-sm transition-colors hover:bg-black/60 leading-none"
+                  aria-label="Fechar"
                 >
                   <X size={15} />
                 </button>
@@ -166,7 +167,8 @@ export default function LocationModal({
 
                 <button
                   onClick={onClose}
-                  className="absolute top-3 right-3 w-8 h-8 bg-white/80 hover:bg-white rounded-full flex items-center justify-center text-zinc-600 transition-colors shadow-sm"
+                  className="absolute top-3 right-3 grid size-8 place-items-center rounded-full bg-white/85 p-0 text-zinc-600 shadow-sm transition-colors hover:bg-white leading-none"
+                  aria-label="Fechar"
                 >
                   <X size={15} />
                 </button>
@@ -199,7 +201,7 @@ export default function LocationModal({
 
                     <button
                       onClick={handleShare}
-                      className="text-zinc-400 hover:text-zinc-700 transition-colors p-1"
+                      className="grid size-7 place-items-center rounded-full text-zinc-400 transition-colors hover:bg-stone-100 hover:text-zinc-700"
                       title="Compartilhar"
                     >
                       <Share2 size={16} />
@@ -207,7 +209,7 @@ export default function LocationModal({
 
                     <Link
                       href={`/locations/${location.id}`}
-                      className="text-zinc-400 hover:text-green-600 transition-colors p-1"
+                      className="grid size-7 place-items-center rounded-full text-zinc-400 transition-colors hover:bg-green-50 hover:text-green-600"
                       title="Página completa"
                     >
                       <ArrowUpRight size={16} />
@@ -310,8 +312,8 @@ export default function LocationModal({
                   />
                 ) : (
                   <button
-                    onClick={onRequestAuth}
-                    className="w-full py-2.5 border border-dashed border-zinc-200 rounded-2xl text-xs text-zinc-400 hover:border-green-400 hover:text-green-600 transition-all"
+                    onClick={() => onRequestAuth?.()}
+                    className="w-full py-3 border border-dashed border-green-200 bg-green-50/50 rounded-2xl text-xs font-semibold text-green-700 hover:border-green-400 hover:bg-green-50 transition-all active:scale-[0.99]"
                   >
                     Entre para avaliar este local
                   </button>
@@ -320,10 +322,9 @@ export default function LocationModal({
                 {!reviewsLoading && <ReviewList reviews={reviews} />}
               </div>
 
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => onViewOnMap?.(location)}
                 className="
                   flex items-center justify-center gap-2 w-full py-3.5
                   bg-green-500 hover:bg-green-600
@@ -333,7 +334,7 @@ export default function LocationModal({
               >
                 <MapPin size={14} />
                 Ver localização no mapa
-              </a>
+              </button>
             </div>
           </div>
         </div>

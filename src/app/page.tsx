@@ -45,7 +45,9 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState<SidebarTab>('explorar');
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const mapFlyToRef = useRef<((lat: number, lng: number) => void) | null>(null);
+  const mapFlyToRef = useRef<(
+    (lat: number, lng: number, options?: { markUser?: boolean; zoom?: number }) => void
+  ) | null>(null);
 
   const handleSelectLocation = (id: string) => {
     const loc = locations.find((l) => l.id === id) ?? null;
@@ -63,10 +65,23 @@ export default function HomePage() {
     }, 100);
   };
 
+  const handleViewLocationOnMap = (location: Location) => {
+    setShowMap(true);
+    setSelectedId(location.id);
+    setModalLocation(null);
+
+    setTimeout(() => {
+      mapFlyToRef.current?.(location.latitude, location.longitude, {
+        markUser: false,
+        zoom: 17,
+      });
+    }, 100);
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-zinc-50">
+    <div className="flex flex-col h-screen bg-linear-to-br from-green-50 via-stone-50 to-amber-50/60">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-3.5 bg-white/80 backdrop-blur-sm border-b border-zinc-100 shadow-sm z-10 shrink-0">
+      <header className="flex items-center justify-between px-5 py-3.5 bg-white/85 backdrop-blur-sm border-b border-green-100/70 shadow-sm z-10 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-green-500 rounded-xl flex items-center justify-center shadow-sm">
             <MapPin size={15} className="text-white" strokeWidth={2.5} />
@@ -122,7 +137,7 @@ export default function HomePage() {
           className={`
             ${showMap ? 'hidden' : 'flex'} sm:flex
             flex-col w-full sm:w-80 lg:w-96 shrink-0
-            bg-white border-r border-zinc-100 overflow-hidden
+            bg-white/90 backdrop-blur-sm border-r border-green-100/70 overflow-hidden
           `}
         >
           {/* Abas no mobile ficam dentro da sidebar */}
@@ -223,7 +238,7 @@ export default function HomePage() {
 
         {/* Mapa */}
         <main className={`${showMap ? 'flex' : 'hidden'} sm:flex flex-1 p-3 min-h-0`}>
-          <div className="w-full h-full rounded-2xl overflow-hidden shadow-sm border border-zinc-100">
+          <div className="w-full h-full rounded-2xl overflow-hidden shadow-card border border-green-100/80 bg-white">
             <MapView
               locations={locations}
               selectedId={selectedId}
@@ -256,6 +271,8 @@ export default function HomePage() {
         onToggleFavorite={
           modalLocation ? () => toggleFavorite(modalLocation.id) : undefined
         }
+        onRequestAuth={() => setShowAuthModal(true)}
+        onViewOnMap={handleViewLocationOnMap}
       />
 
       {/* Modal de autenticação */}

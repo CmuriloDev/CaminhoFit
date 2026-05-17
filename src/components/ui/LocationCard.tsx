@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { Clock, Users, ArrowUpRight } from 'lucide-react';
+import { Clock, Users } from 'lucide-react';
 import type { Location } from '@/types';
 import {
   ACTIVITY_TYPE_LABELS,
@@ -68,21 +67,6 @@ export default function LocationCard({
               size="sm"
             />
           )}
-
-          <Link
-            href={`/locations/${location.id}`}
-            onClick={(e) => e.stopPropagation()}
-            className={`
-              shrink-0 flex items-center gap-0.5 text-xs font-medium
-              transition-all duration-200 tap-scale
-              ${isSelected
-                ? 'text-fit-600'
-                : 'text-stone-400 hover:text-fit-600'
-              }
-            `}
-          >
-            <ArrowUpRight size={14} />
-          </Link>
         </div>
       </div>
 

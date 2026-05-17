@@ -9,7 +9,9 @@ interface MapViewProps {
   locations: Location[];
   selectedId?: string | null;
   onSelectLocation: (id: string) => void;
-  onMapReady?: (flyTo: (lat: number, lng: number) => void) => void;
+  onMapReady?: (
+    flyTo: (lat: number, lng: number, options?: { markUser?: boolean; zoom?: number }) => void
+  ) => void;
 }
 
 export default function MapView({
@@ -58,9 +60,12 @@ export default function MapView({
       mapRef.current = map;
 
       // Expõe flyTo + atualiza ponto do usuário
-      onMapReady?.((lat, lng) => {
-        map.flyTo([lat, lng], 16, { animate: true, duration: 1.2 });
-        updateUserLocation(L, map, lat, lng);
+      onMapReady?.((lat, lng, options) => {
+        map.flyTo([lat, lng], options?.zoom ?? 16, { animate: true, duration: 1.2 });
+
+        if (options?.markUser ?? true) {
+          updateUserLocation(L, map, lat, lng);
+        }
       });
     });
 
@@ -262,6 +267,38 @@ export default function MapView({
         .fitmap-popup .leaflet-popup-tip {
           background: white;
           box-shadow: none;
+        }
+        .fitmap-popup .leaflet-popup-close-button {
+          top: 8px !important;
+          right: 8px !important;
+          width: 28px !important;
+          height: 28px !important;
+          padding: 0 !important;
+          border-radius: 9999px !important;
+          display: grid !important;
+          place-items: center !important;
+          background: rgba(255,255,255,0.86) !important;
+          color: transparent !important;
+          font-size: 0 !important;
+          line-height: 0 !important;
+          text-indent: -9999px !important;
+          box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+        }
+        .fitmap-popup .leaflet-popup-close-button::before {
+          content: "×";
+          display: block;
+          color: #57534e;
+          font-size: 22px;
+          font-weight: 500;
+          line-height: 1;
+          text-indent: 0;
+          transform: translateY(-1px);
+        }
+        .fitmap-popup .leaflet-popup-close-button:hover {
+          background: rgba(0,0,0,0.06) !important;
+        }
+        .fitmap-popup .leaflet-popup-close-button:hover::before {
+          color: #292524;
         }
         .leaflet-control-zoom {
           border: none !important;
